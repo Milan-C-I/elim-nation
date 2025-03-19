@@ -2,7 +2,10 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { User, X, Edit3 } from 'lucide-react';
+import { User, X, Edit3, Plus, Trash2 } from 'lucide-react';
+import { Dialog, DialogOverlay, DialogContent } from "@/components/ui/dialog";
+import { parse } from 'path';
+import { DialogTitle } from '@radix-ui/react-dialog';
 
 // Player type definition
 interface Player {
@@ -10,21 +13,22 @@ interface Player {
   name: string;
   eliminated: boolean;
   checked: boolean;
-  blank: boolean;
 }
 
 export default function Home() {
-  // Initial player data
   const initialPlayers: Player[] = Array.from({ length: 50 }, (_, i) => ({
     id: 101 + i,
     name: `Player ${101 + i}`,
     eliminated: false,
     checked: false,
-    blank: false,
   }));
 
   const [players, setPlayers] = useState<Player[]>(initialPlayers);
   const [editMode, setEditMode] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newPlayerName, setNewPlayerName] = useState("");
+  const [newId, setNewId] = useState<number>();
+  const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
 
   // Toggle player elimination status
   const toggleEliminatedStatus = (id: number) => {
@@ -35,21 +39,27 @@ export default function Home() {
     );
   };
 
-  // Toggle blank status and allow editing name
-  const toggleBlankStatus = (id: number) => {
-    setPlayers(prevPlayers =>
-      prevPlayers.map(player =>
-        player.id === id ? { ...player, blank: !player.blank, name: player.blank ? `Player ${player.id}` : '' } : player
-      )
-    );
+  // Handle adding a new player
+  const addPlayer = () => {
+    if (newPlayerName.trim() === "") return;
+    setPlayers([...players, { id: newId || 0, name: newPlayerName, eliminated: false, checked: false }]);
+    setNewPlayerName("");
+    setNewId(undefined);    
+    setIsDialogOpen(false);
   };
 
-  const handleNameChange = (id: number, newName: string) => {
-    setPlayers(prevPlayers =>
-      prevPlayers.map(player =>
-        player.id === id ? { ...player, name: newName } : player
-      )
-    );
+  // Handle editing an existing player
+  const editPlayer = () => {
+    if (!editingPlayer || newPlayerName.trim() === "") return;
+    setPlayers(prevPlayers => prevPlayers.map(player => (player.id === editingPlayer.id ? { ...player, name: newPlayerName } : player)));
+    setEditingPlayer(null);
+    setNewPlayerName("");
+    setIsDialogOpen(false);
+  };
+
+  // Handle deleting a player
+  const deletePlayer = (id: number) => {
+    setPlayers(prevPlayers => prevPlayers.filter(player => player.id !== id));
   };
 
   return (
@@ -59,7 +69,7 @@ export default function Home() {
 
         {/* Players Grid */}
         <div className="grid grid-cols-5 md:grid-cols-10 gap-2">
-          {players.map((player) => (
+          {players.map(player => (
             <motion.div
               key={player.id}
               className={`relative aspect-square overflow-hidden cursor-pointer`}
@@ -76,25 +86,21 @@ export default function Home() {
                   {editMode && (
                     <button 
                       className="absolute bottom-1 right-1 bg-gray-800 p-1 rounded-full" 
-                      onClick={(e) => { e.stopPropagation(); toggleBlankStatus(player.id); }}
+                      onClick={(e) => { e.stopPropagation(); setEditingPlayer(player); setNewPlayerName(player.name); setIsDialogOpen(true); }}
                     >
                       <Edit3 className="text-white w-4 h-4" />
                     </button>
                   )}
                 </div>
-                <div className="mt-1 text-xs text-center truncate w-full">
-                  {player.blank ? (
-                    <input
-                      type="text"
-                      className="bg-gray-800 text-white px-1 py-0.5 rounded text-xs text-center"
-                      value={player.name}
-                      onChange={(e) => handleNameChange(player.id, e.target.value)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  ) : (
-                    player.name
-                  )}
-                </div>
+                <div className="mt-1 text-xs text-center truncate w-full">{player.name}</div>
+                {editMode && (
+                  <button 
+                    className="absolute top-1 right-1 bg-red-600 p-1 rounded-full"
+                    onClick={(e) => { e.stopPropagation(); deletePlayer(player.id); }}
+                  >
+                    <Trash2 className="text-white w-4 h-4" />
+                  </button>
+                )}
                 {player.eliminated && (
                   <motion.div
                     initial={{ scale: 2, opacity: 0.7 }}
@@ -111,12 +117,34 @@ export default function Home() {
           ))}
         </div>
 
-        {/* Status Panel */}
         <div className="mt-8 text-center">
-          <p>
-            Players Eliminated: {players.filter(p => p.eliminated).length} / {players.length}
-          </p>
+          <button className="bg-green-600 px-4 py-2 rounded" onClick={() => setIsDialogOpen(true)}>
+            <Plus className="inline-block w-5 h-5 mr-2" /> Add Player
+          </button>
         </div>
+
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogOverlay />
+          <DialogContent className='bg-gray-500'>
+            <DialogTitle className="text-xl mb-4 text-white">{editingPlayer ? "Edit Player" : "Add Player"}</DialogTitle>
+            <input
+              type="number"
+              className="bg-gray-200 text-black px-2 py-1 rounded w-full"
+              value={newId || ""}
+              onChange={(e) => setNewId(parseInt(e.target.value))}
+            />
+            <input
+              type="text"
+              className="bg-gray-200 text-black px-2 py-1 rounded w-full"
+              value={newPlayerName}
+              onChange={(e) => setNewPlayerName(e.target.value)}
+            />
+            <div className="mt-4 flex justify-end">
+              <button className="bg-gray-300 px-4 py-2 rounded mr-2" onClick={() => setIsDialogOpen(false)}>Cancel</button>
+              <button className="bg-blue-600 px-4 py-2 rounded" onClick={editingPlayer ? editPlayer : addPlayer}>Save</button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
