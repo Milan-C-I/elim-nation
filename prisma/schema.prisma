@@ -16,7 +16,7 @@ datasource db {
 model User {
   id         Int     @id @default(autoincrement())
   name       String
-  eliminated Boolean
-  checked    Boolean
-  blank      Boolean
+  eliminated Boolean @default(false)
+  checked    Boolean @default(false)
+  blank      Boolean @default(false)
 }
