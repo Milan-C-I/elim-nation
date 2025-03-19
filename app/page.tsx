@@ -141,10 +141,7 @@ export default function Home() {
 
   // Reset all players
   const resetPlayers = () => {
-    setPlayers(initialPlayers);
-    setCurrentPlayerIndex(null);
-    setIsChecking(false);
-    setEditMode(false);
+    window.location.reload();
   };
 
   //soundEffects
@@ -244,8 +241,8 @@ export default function Home() {
                 }}
                 transition={{
                   scale: { duration: shouldAnimateScale ? 0.8 : 0 },
-                  y: { delay: shouldRemove ? 2 : 0, duration: 1 },
-                  opacity: { delay: shouldRemove ? 2 : 0, duration: 1 },
+                  y: { delay: shouldRemove ? 1 : 0, duration: 1 },
+                  opacity: { delay: shouldRemove ? 1 : 0, duration: 1 },
                 }}
                 
               >
