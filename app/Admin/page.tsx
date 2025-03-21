@@ -173,15 +173,7 @@ export default function Home() {
     // Update all players (for bulk operations)
     const handleBulkUpdate = async (updatedPlayers: Player[]) => {
         try {
-            await updateUsers(
-                updatedPlayers.map((e) => ({
-                    playerId: e.playerId,
-                    name: e.name,
-                    eliminated: e.eliminated,
-                    checked: e.checked,
-                    blank: e.blank,
-                }))
-            );
+            await updateUsers(updatedPlayers);
             setPlayers(updatedPlayers);
         } catch (err) {
             console.error("Error performing bulk update:", err);
