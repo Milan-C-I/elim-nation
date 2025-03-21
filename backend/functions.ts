@@ -37,9 +37,9 @@ export async function updateUser(id: string, data: Prisma.UserUpdateInput) {
 }
 
 export async function updateUsers(data: (Prisma.UserUncheckedUpdateManyInput & { id: string })[]) {
-    return await Promise.all(data.map(player=>{
+    return await Promise.all(data.map(player => {
         const { id, ...p } = player;
-        if(id){
+        if (id) {
             return db.user.update({
                 where: {
                     id: id
@@ -56,4 +56,16 @@ export async function deleteUser(id: number) {
             playerId: id
         }
     })
+}
+
+export async function startTimer(mins: number) {
+    return await db.timer.create({
+        data: {
+            time: mins
+        }
+    })
+}
+
+export async function getTimer() {
+    return await db.timer.findFirst({ orderBy: { startedAt: "desc" } });
 }
