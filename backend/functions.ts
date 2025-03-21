@@ -27,10 +27,10 @@ export async function createUser({ playerId, name, blank, checked, eliminated }:
     });
 }
 
-export async function updateUser(id: number, data: Prisma.UserUpdateInput) {
+export async function updateUser(id: string, data: Prisma.UserUpdateInput) {
     return await db.user.update({
         where: {
-            playerId: id
+            id: id
         },
         data: data
     })
