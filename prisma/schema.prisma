@@ -21,3 +21,9 @@ model User {
   checked    Boolean @default(false)
   blank      Boolean @default(false)
 }
+
+model Timer{
+  id         String  @id @default(auto()) @map("_id") @db.ObjectId
+  time       Int     @default(0)
+  startedAt  DateTime @default(now())
+}
