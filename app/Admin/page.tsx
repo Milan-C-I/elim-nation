@@ -60,10 +60,7 @@ export default function Home() {
                 )
             );
 
-            // Update in backend
-            const { id, ...pTP } = playerToUpdate;
-            await updateUser(id, {
-                ...pTP,
+            await updateUser(playerToUpdate.id, {
                 eliminated: !playerToUpdate.eliminated,
             });
         } catch (err) {
