@@ -43,6 +43,18 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+@layer utilities {
+  .text-outline-black {
+    -webkit-text-stroke: 2px black;
+  }
+  .text-outline-white {
+    -webkit-text-stroke: 1px white;
+  }
+  .text-outline-red {
+    -webkit-text-stroke: 2px red;
+  }
+}
+
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);

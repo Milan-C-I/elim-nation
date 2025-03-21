@@ -6,7 +6,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { User, X, CheckCircle } from "lucide-react";
 import { getUsers, updateUsers } from "@/backend/functions";
 import { User as Player } from "@prisma/client";
-
+import { Zen_Dots } from "next/font/google";
+const novaSquare = Zen_Dots({
+  weight: "400",
+  subsets: ["latin"], 
+})
 export default function Home() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState<number | null>(
@@ -153,18 +157,10 @@ export default function Home() {
     <div className="min-h-screen bg-gray-900 text-white p-8">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold mb-8 text-center">
-          Player Elimination Game
+          <span className={`text-transparent text-outline-white ${novaSquare.className}`}>ELIM</span>-<span className={`${novaSquare.className} text-red-600`}>NATION</span>
         </h1>
 
-        {/* Instruction for keyboard shortcut */}
-        <div className="flex justify-center mb-8">
-          <div className="bg-blue-800 px-6 py-3 rounded-lg shadow-lg">
-            <p className="text-center">
-              Press <kbd className="bg-gray-800 px-2 py-1 rounded mx-1">Shift</kbd> + 
-              <kbd className="bg-gray-800 px-2 py-1 rounded mx-1">Space</kbd> to start checking round
-            </p>
-          </div>
-        </div>
+        
 
         {/* Players Grid */}
         <div className="grid grid-cols-5 md:grid-cols-10 gap-2">
