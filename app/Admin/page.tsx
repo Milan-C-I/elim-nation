@@ -43,18 +43,18 @@ export default function Home() {
     }, []);
 
     // Toggle player elimination status
-    const toggleEliminatedStatus = async (id: number) => {
+    const toggleEliminatedStatus = async (lid: number) => {
         try {
             // Find the player to toggle
             const playerToUpdate = players.find(
-                (player) => player.playerId === id
-            );
+                (player) => player.playerId === lid
+            ) as Player;
             if (!playerToUpdate) return;
 
             // Optimistically update UI
             setPlayers((prevPlayers) =>
                 prevPlayers.map((player) =>
-                    player.playerId === id
+                    player.playerId === lid
                         ? { ...player, eliminated: !player.eliminated }
                         : player
                 )
@@ -63,7 +63,7 @@ export default function Home() {
             // Update in backend
             const { id, ...pTP } = playerToUpdate;
             await updateUser(id, {
-                ...pTp,
+                ...pTP,
                 eliminated: !playerToUpdate.eliminated,
             });
         } catch (err) {
@@ -120,7 +120,7 @@ export default function Home() {
             );
 
             // Update in backend
-            await updateUser(editingPlayer.playerId, {
+            await updateUser(editingPlayer.id, {
                 playerId: editingPlayer.playerId,
                 name: newPlayerName,
                 eliminated: editingPlayer.eliminated,
@@ -240,6 +240,7 @@ export default function Home() {
                                             e.stopPropagation();
                                             setEditingPlayer(player);
                                             setNewPlayerName(player.name);
+                                            setNewId(player.playerId);
                                             setIsDialogOpen(true);
                                         }}
                                     >
