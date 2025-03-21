@@ -8,12 +8,12 @@ const MovieCredits = () => {
 
   useEffect(() => {
     window.onclick = () => {
-    //   vidRef.current?.play();
-    if(vidRef.current?.paused){
+      //   vidRef.current?.play();
+      if (vidRef.current?.paused) {
         vidRef.current?.play();
-    }else{
+      } else {
         vidRef.current?.pause();
-    }
+      }
     };
 
     setIsVisible(true);
@@ -209,7 +209,7 @@ const MovieCredits = () => {
 
               <div className="mb-8">
                 <p className="text-xl mb-2">Masters of Ceremony (MCs)</p>
-                <p className="text-2xl font-bold">Aman & Keertana</p>
+                <p className="text-2xl font-bold">Himanshu Hegde</p>
               </div>
 
               <div className="mb-8">
@@ -224,7 +224,7 @@ const MovieCredits = () => {
 
               <div className="mb-8">
                 <p className="text-xl mb-2">Marketing & Publicity By</p>
-                <p className="text-2xl font-bold">Aman & Keertana</p>
+                <p className="text-2xl font-bold">Himanshu Hegde</p>
               </div>
 
               <div className="mb-8">
@@ -244,13 +244,12 @@ const MovieCredits = () => {
 
               <div className="mb-8">
                 <p className="text-xl mb-2">Creative Direction & Branding By</p>
-                <p className="text-2xl font-bold">Aman & Keertana</p>
+                <p className="text-2xl font-bold">Himanshu Hegde</p>
               </div>
 
               <div className="mb-16">
-                <p className="text-xl mb-4">Special Thanks To</p>
                 <div className="mt-4">
-                  {Array(50)
+                  {Array(100)
                     .fill(" Himanshu Saarrr")
                     .map((name, index) => (
                       <p key={index} className="text-5xl font-bold my-14">
@@ -294,14 +293,19 @@ const MovieCredits = () => {
               </p>
             </div>
           </div>
-          <div className="sticky top-0 h-screen w-full overflow-hidden mb-80 flex justify-center">
+          <div className="sticky top-0 h-screen w-full overflow-hidden mb-80 flex flex-col justify-center align-center">
+            <div className="mt-28 text-center">
+              <p className="text-5xl font-bold my-2">
+                <span className="text-7xl mb-0">CREDITS TO :</span>
+              </p>
+            </div>
             <Image
               src="/writtenby.png"
               alt="elimnation"
               width={1920}
               height={1080}
               sizes="95vw"
-              className="w-[95vw] h-screen object-contain"
+              className="w-[95vw] block h-screen object-contain"
             />
           </div>
         </div>
