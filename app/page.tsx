@@ -56,7 +56,13 @@ export default function Home() {
     setCheckingSpeed(800); // Reset speed to initial value
 
     // Reset all players' checked status
-    setPlayers(pp.map((player) => ({ ...player, checked: false })));
+    const updatedPlayers = pp.map((player) => ({ ...player, checked: false }));
+    setPlayers(updatedPlayers);
+    
+    // Update to backend
+    (async() => {
+      await updateUsers(updatedPlayers);
+    })();
   };
 
   // Handle the checking animation progression
@@ -109,6 +115,12 @@ export default function Home() {
             checked: true,
           };
         }
+        
+        // Update to backend
+        (async() => {
+          await updateUsers(newPlayers);
+        })();
+        
         return newPlayers;
       });
 
@@ -158,14 +170,14 @@ export default function Home() {
         <div className="grid grid-cols-5 md:grid-cols-10 gap-2">
           {players.map((player, index) => {
             const isBeingChecked = isChecking && index === currentPlayerIndex;
-
+            console.log(JSON.stringify(player))
             if (player.blank && !player.eliminated) {
               return (
                 <motion.div
-                  key={player.id}
+                  key={player.playerId}
                   className="relative aspect-square overflow-hidden"
                   // Use layoutId for smoother transition between states
-                  layoutId={`player-card-${player.id}`}
+                  layoutId={`player-card-${player.playerId}`}
                 >
                   <div className="w-full h-full bg-black bg-opacity-90 flex flex-col items-center justify-center rounded relative overflow-hidden">
                     {/* Static background */}
@@ -177,11 +189,18 @@ export default function Home() {
                       onComplete={() => {
                         // After animation completes, set player.blank to false
                         setTimeout(() => {
-                          setPlayers((prevPlayers) =>
-                            prevPlayers.map((p) =>
-                              p.id === player.id ? { ...p, blank: false } : p
-                            )
-                          );           
+                          setPlayers((prevPlayers) => {
+                            const updatedPlayers = prevPlayers.map((p) =>
+                              p.playerId === player.playerId ? { ...p, blank: false } : p
+                            );
+                            
+                            // Update to backend
+                            (async() => {
+                              await updateUsers(updatedPlayers);
+                            })();
+                            
+                            return updatedPlayers;
+                          });           
                         }, 3000); // Allow animation to show for 3 seconds before changing state
                       }}
                     />
@@ -194,7 +213,7 @@ export default function Home() {
             if (player.blank) {
               return (
                 <motion.div
-                  key={player.id}
+                  key={player.playerId}
                   className="relative aspect-square overflow-hidden"
                 >
                   <div className="w-full h-full bg-gray-800 bg-opacity-30 flex items-center justify-center rounded">
@@ -214,7 +233,7 @@ export default function Home() {
 
             return (
               <motion.div
-                key={player.id}
+                key={player.playerId}
                 className="relative aspect-square overflow-hidden"
                 animate={{
                   scale: shouldAnimateScale ? [1, 1.1, 1] : 1,
@@ -237,7 +256,7 @@ export default function Home() {
                   <div className="relative w-full h-3/4 flex items-center justify-center bg-gray-700 rounded overflow-hidden">
                     <User className="w-full h-full p-2 text-gray-300" />
                     <div className="absolute top-0 left-0 text-xs bg-black bg-opacity-50 px-1 rounded-br">
-                      {player.id}
+                      {player.playerId}
                     </div>
                   </div>
 
