@@ -3,14 +3,14 @@
 // pages/index.tsx
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { User, X, CheckCircle } from "lucide-react";
+import { User, X, CheckCircle, Play } from "lucide-react";
 import { getUsers, updateUsers } from "@/backend/functions";
 import { User as Player } from "@prisma/client";
 import { Zen_Dots } from "next/font/google";
 const novaSquare = Zen_Dots({
   weight: "400",
-  subsets: ["latin"], 
-})
+  subsets: ["latin"],
+});
 export default function Home() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState<number | null>(
@@ -21,52 +21,35 @@ export default function Home() {
 
   // Fetch users on initial render
   useEffect(() => {
-    (async()=>{
+    const fetchUsers = async () => {
       let data = await getUsers();
       setPlayers(data);
-    })()
+    };
+    
+    fetchUsers();
   }, []);
-
-  // Keyboard shortcut handler for Shift+Space
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Check if Shift+Space is pressed
-      if (e.shiftKey && e.code === "Space") {
-        e.preventDefault(); // Prevent default space behavior (scrolling)
-        startChecking();
-      }
-    };
-
-    // Add event listener
-    window.addEventListener("keydown", handleKeyDown);
-
-    // Clean up
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [players, isChecking]); // Add dependencies to ensure we have the latest state
 
   // Start the checking animation
   const startChecking = async () => {
     if (isChecking) return;
-    let pp = await getUsers();
     
+    // Fetch fresh data before starting
+    let freshPlayers = await getUsers();
+    setPlayers(freshPlayers);
     setIsChecking(true);
 
     // Find the first non-blank player
-    const firstNonBlankIndex = pp.findIndex((player) => !player.blank);
+    const firstNonBlankIndex = freshPlayers.findIndex((player) => !player.blank);
     setCurrentPlayerIndex(firstNonBlankIndex >= 0 ? firstNonBlankIndex : null);
 
     setCheckingSpeed(800); // Reset speed to initial value
 
     // Reset all players' checked status
-    const updatedPlayers = pp.map((player) => ({ ...player, checked: false }));
+    const updatedPlayers = freshPlayers.map((player) => ({ ...player, checked: false }));
     setPlayers(updatedPlayers);
-    
+
     // Update to backend
-    (async() => {
-      await updateUsers(updatedPlayers);
-    })();
+    await updateUsers(updatedPlayers);
   };
 
   // Handle the checking animation progression
@@ -77,16 +60,22 @@ export default function Home() {
       // Animation complete
       setIsChecking(false);
       setCurrentPlayerIndex(null);
-      let pp = players.map((player) =>
+      
+      // After checking is complete, mark eliminated players as blank
+      const updatedPlayers = players.map((player) =>
         player.eliminated && player.checked
           ? { ...player, blank: true }
           : player
       );
-      (async()=>{
-        await updateUsers(pp);
-      })()
-      // After checking is complete, mark eliminated players as blank
-      setPlayers(pp);
+      
+      setPlayers(updatedPlayers);
+      
+      // Move backend update to a separate effect
+      const updateBackend = async () => {
+        await updateUsers(updatedPlayers);
+      };
+      
+      updateBackend();
       return;
     }
 
@@ -111,22 +100,14 @@ export default function Home() {
 
     const timer = setTimeout(() => {
       // Mark current player as checked
-      setPlayers((prevPlayers) => {
-        const newPlayers = [...prevPlayers];
-        if (currentPlayerIndex < newPlayers.length) {
-          newPlayers[currentPlayerIndex] = {
-            ...newPlayers[currentPlayerIndex],
-            checked: true,
-          };
-        }
-        
-        // Update to backend
-        (async() => {
-          await updateUsers(newPlayers);
-        })();
-        
-        return newPlayers;
-      });
+      const newPlayers = [...players];
+      if (currentPlayerIndex < newPlayers.length) {
+        newPlayers[currentPlayerIndex] = {
+          ...newPlayers[currentPlayerIndex],
+          checked: true,
+        };
+      }
+      setPlayers(newPlayers);
 
       // Move to next player
       setCurrentPlayerIndex((prevIndex) => {
@@ -142,6 +123,13 @@ export default function Home() {
       });
 
       setCheckingSpeed(newSpeed);
+      
+      // Move backend update to a separate async function
+      const saveToBackend = async () => {
+        await updateUsers(newPlayers);
+      };
+      
+      saveToBackend();
     }, checkingSpeed);
 
     return () => clearTimeout(timer);
@@ -153,20 +141,54 @@ export default function Home() {
     audio.play();
   };
 
+  // Completely reset the checking process
+  const resetChecking = () => {
+    setIsChecking(false);
+    setCurrentPlayerIndex(null);
+    setCheckingSpeed(800);
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold mb-8 text-center">
-          <span className={`text-transparent text-outline-white ${novaSquare.className}`}>ELIM</span>-<span className={`${novaSquare.className} text-red-600`}>NATION</span>
+          <span
+            className={`text-transparent text-outline-white ${novaSquare.className}`}
+          >
+            ELIM
+          </span>
+          -
+          <span className={`${novaSquare.className} text-red-600`}>NATION</span>
         </h1>
 
-        
+        {/* Check Button - Added here */}
+        <div className="flex justify-center mb-6">
+          <button 
+            onClick={async () => {
+              // First ensure we're completely reset if a previous run just finished
+              resetChecking();
+              // Wait a moment to ensure state is updated
+              setTimeout(async () => {
+                await startChecking();
+              }, 100);
+            }}
+            disabled={isChecking}
+            className={`flex items-center justify-center gap-2 px-6 py-3 cursor-pointer rounded-full 
+              ${isChecking 
+                ? "bg-gray-600 cursor-not-allowed" 
+                : "bg-red-600 hover:bg-red-700 transition-colors"
+              } text-white font-bold`}
+          >
+            <Play size={20} />
+            <span>CHECK</span>
+          </button>
+        </div>
 
         {/* Players Grid */}
         <div className="grid grid-cols-5 md:grid-cols-10 gap-2">
           {players.map((player, index) => {
             const isBeingChecked = isChecking && index === currentPlayerIndex;
-            console.log(JSON.stringify(player))
+            
             if (player.blank && !player.eliminated) {
               return (
                 <motion.div
@@ -178,25 +200,32 @@ export default function Home() {
                   <div className="w-full h-full bg-black bg-opacity-90 flex flex-col items-center justify-center rounded relative overflow-hidden">
                     {/* Static background */}
                     <div className="absolute inset-0 bg-grid-pattern bg-opacity-20"></div>
-            
+
                     {/* Use the enhanced HackingAnimation component */}
                     <HackingAnimation
                       playerId={player.playerId}
                       onComplete={() => {
                         // After animation completes, set player.blank to false
                         setTimeout(() => {
-                          setPlayers((prevPlayers) => {
-                            const updatedPlayers = prevPlayers.map((p) =>
-                              p.playerId === player.playerId ? { ...p, blank: false } : p
-                            );
-                            
-                            // Update to backend
-                            (async() => {
-                              await updateUsers(updatedPlayers);
-                            })();
-                            
-                            return updatedPlayers;
-                          });           
+                          // Create a new function to handle the state update and API call
+                          const updatePlayerStatus = async (playerId: number) => {
+                            // First update the state
+                            setPlayers((prevPlayers) => {
+                              const updatedPlayers = prevPlayers.map((p) =>
+                                p.playerId === playerId
+                                  ? { ...p, blank: false }
+                                  : p
+                              );
+                              
+                              // Then update the backend in a separate async operation
+                              updateUsers(updatedPlayers).catch(console.error);
+                              
+                              return updatedPlayers;
+                            });
+                          };
+                          
+                          // Call the function
+                          updatePlayerStatus(player.playerId);
                         }, 3000); // Allow animation to show for 3 seconds before changing state
                       }}
                     />
@@ -319,10 +348,16 @@ export default function Home() {
   );
 }
 
-// HackingAnimation component 
-function HackingAnimation({ playerId, onComplete }:{playerId: number, onComplete: () => void}) {
+// HackingAnimation component
+function HackingAnimation({
+  playerId,
+  onComplete,
+}: {
+  playerId: number;
+  onComplete: () => void;
+}) {
   const [animationStarted, setAnimationStarted] = useState(false);
-  
+
   useEffect(() => {
     // Start animation after component mounts to avoid hydration issues
     setAnimationStarted(true);
@@ -357,18 +392,18 @@ function HackingAnimation({ playerId, onComplete }:{playerId: number, onComplete
       </div>
 
       {/* Glitchy Text */}
-      <motion.div 
+      <motion.div
         className="text-green-500 font-mono font-bold text-center z-30 px-1"
         animate={{
           x: [-2, 2, -2, 1, -1, 0],
           opacity: [1, 0.8, 1, 0.9, 1],
           color: ["#22c55e", "#ef4444", "#22c55e", "#000000", "#22c55e"],
-          scale: [1, 1.02, 0.98, 1]
+          scale: [1, 1.02, 0.98, 1],
         }}
         transition={{
           duration: 0.3,
           repeat: 8,
-          repeatType: "loop"
+          repeatType: "loop",
         }}
       >
         RESTORING
@@ -385,7 +420,7 @@ function HackingAnimation({ playerId, onComplete }:{playerId: number, onComplete
         transition={{
           duration: 0.5,
           repeat: 6,
-          repeatType: "mirror"
+          repeatType: "mirror",
         }}
       />
 
@@ -397,7 +432,7 @@ function HackingAnimation({ playerId, onComplete }:{playerId: number, onComplete
         transition={{
           duration: 0.2,
           repeat: 15,
-          repeatType: "loop"
+          repeatType: "loop",
         }}
       />
 
@@ -410,7 +445,7 @@ function HackingAnimation({ playerId, onComplete }:{playerId: number, onComplete
           duration: 0.3,
           delay: 0.1,
           repeat: 15,
-          repeatType: "loop"
+          repeatType: "loop",
         }}
       />
 
@@ -418,19 +453,21 @@ function HackingAnimation({ playerId, onComplete }:{playerId: number, onComplete
       {Array.from({ length: 8 }).map((_, i) => (
         <motion.div
           key={`glitch-line-${i}`}
-          className={`absolute h-1 ${i % 2 === 0 ? 'bg-red-500' : 'bg-green-500'} left-0 right-0 z-25`}
+          className={`absolute h-1 ${
+            i % 2 === 0 ? "bg-red-500" : "bg-green-500"
+          } left-0 right-0 z-25`}
           style={{ top: `${Math.random() * 100}%` }}
           initial={{ opacity: 0, scaleX: 0 }}
-          animate={{ 
+          animate={{
             opacity: [0, 0.8, 0],
             scaleX: [0, 1, 0],
-            x: ['-100%', '100%']
+            x: ["-100%", "100%"],
           }}
           transition={{
             duration: 0.2,
             delay: i * 0.3,
             repeat: Math.floor(Math.random() * 5) + 2,
-            repeatDelay: Math.random()
+            repeatDelay: Math.random(),
           }}
         />
       ))}
@@ -439,26 +476,32 @@ function HackingAnimation({ playerId, onComplete }:{playerId: number, onComplete
       {Array.from({ length: 10 }).map((_, i) => (
         <motion.div
           key={`block-${i}`}
-          className={`absolute ${i % 3 === 0 ? 'bg-red-500' : i % 3 === 1 ? 'bg-green-500' : 'bg-black'} mix-blend-screen z-20`}
+          className={`absolute ${
+            i % 3 === 0
+              ? "bg-red-500"
+              : i % 3 === 1
+              ? "bg-green-500"
+              : "bg-black"
+          } mix-blend-screen z-20`}
           style={{
             width: `${Math.random() * 40 + 10}px`,
             height: `${Math.random() * 15 + 5}px`,
           }}
-          initial={{ 
+          initial={{
             opacity: 0,
             x: Math.random() * 100,
-            y: Math.random() * 100
+            y: Math.random() * 100,
           }}
-          animate={{ 
+          animate={{
             opacity: [0, 0.4, 0],
             x: Math.random() * 100,
-            y: Math.random() * 100
+            y: Math.random() * 100,
           }}
           transition={{
             duration: 0.3,
             delay: i * 0.2,
             repeat: 5,
-            repeatType: "mirror"
+            repeatType: "mirror",
           }}
         />
       ))}
@@ -472,21 +515,21 @@ function HackingAnimation({ playerId, onComplete }:{playerId: number, onComplete
             width: `${Math.random() * 60 + 20}px`,
             height: `${Math.random() * 20 + 4}px`,
           }}
-          initial={{ 
+          initial={{
             opacity: 0,
             x: Math.random() * 100,
-            y: Math.random() * 100
+            y: Math.random() * 100,
           }}
-          animate={{ 
+          animate={{
             opacity: [0, 1, 0],
             x: Math.random() * 100,
-            y: Math.random() * 100
+            y: Math.random() * 100,
           }}
           transition={{
             duration: 0.2,
             delay: i * 0.4,
             repeat: 4,
-            repeatType: "mirror"
+            repeatType: "mirror",
           }}
         />
       ))}
@@ -496,14 +539,16 @@ function HackingAnimation({ playerId, onComplete }:{playerId: number, onComplete
         {Array.from({ length: 8 }).map((_, i) => (
           <motion.div
             key={`code-${playerId}-${i}`}
-            className={`absolute text-xs ${i % 2 === 0 ? 'text-green-500' : 'text-red-500'} font-mono opacity-60`}
+            className={`absolute text-xs ${
+              i % 2 === 0 ? "text-green-500" : "text-red-500"
+            } font-mono opacity-60`}
             style={{
               top: `${10 + i * 10}%`,
               left: "-100%",
             }}
             animate={{
               left: ["100%", "-100%"],
-              y: [0, Math.random() > 0.5 ? 5 : -5, 0]
+              y: [0, Math.random() > 0.5 ? 5 : -5, 0],
             }}
             transition={{
               duration: 2,
@@ -514,7 +559,16 @@ function HackingAnimation({ playerId, onComplete }:{playerId: number, onComplete
           >
             {/* Generate random code-like strings */}
             {`> ${
-              ["INIT", "SCAN", "DECRYPT", "RESTORE", "VERIFY", "REBOOT", "INJECT", "COMPLETE"][i]
+              [
+                "INIT",
+                "SCAN",
+                "DECRYPT",
+                "RESTORE",
+                "VERIFY",
+                "REBOOT",
+                "INJECT",
+                "COMPLETE",
+              ][i]
             }_${Math.floor(Math.random() * 10000)}`}
           </motion.div>
         ))}
@@ -525,7 +579,9 @@ function HackingAnimation({ playerId, onComplete }:{playerId: number, onComplete
         {Array.from({ length: 100 }).map((_, i) => (
           <motion.div
             key={`noise-${i}`}
-            className={`absolute ${i % 2 === 0 ? 'bg-green-400' : 'bg-red-400'}`}
+            className={`absolute ${
+              i % 2 === 0 ? "bg-green-400" : "bg-red-400"
+            }`}
             style={{
               width: "2px",
               height: "2px",
